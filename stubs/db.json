@@ -1,0 +1,135 @@
+{
+  "status": {
+    "up": true
+  },
+  "search": [
+    {
+      "name": "abou ali",
+      "logicalId": 13,
+      "sanctioned": true,
+      "relevance": 1.0,
+      "matchingAlias": "Abou Ali",
+      "otherAliases": [
+        "Abu Ali",
+        "Saddam Hussein Al-Tikriti"
+      ]
+    },
+    {
+      "name": "abou ali",
+      "logicalId": 1095,
+      "sanctioned": true,
+      "relevance": 1.0,
+      "matchingAlias": "Abou Ali",
+      "otherAliases": [
+        "Faycal",
+        "Noureddine Ben Ali Ben Belkassem Al-Drissi",
+        "Noureddine Drissi"
+      ]
+    },
+    {
+      "name": "οργάνωση Al-Qaida στην Αραβική Χερσόνησο",
+      "logicalId": 5523,
+      "sanctioned": true,
+      "relevance": 1.0,
+      "matchingAlias": "οργάνωση Al-Qaida στην Αραβική Χερσόνησο",
+      "otherAliases": [
+        "AAS",
+        "Al-Kaida na Półwyspie Arabskim",
+        "Al-Kaida organizacije Džihad z Arabskega polotoka,",
+        "Al-Kaida w Jemenie",
+        "Al-Kaida w południowej części Półwyspu Arabskiego",
+        "Al-Kaida z Arabskega polotoka",
+        "Al-Kaida z južnega dela Arabskega polotoka",
+        "Al-Qa'ida Jemen",
+        "Al-Qa'ida van het zuidelijk Arabisch Schiereiland",
+        "Al-Qa'ida-organisatie van het Arabisch Schiereiland",
+        "Al-Qa‘ida van de Jihad-organisatie van het Arabisch Schiereiland",
+        "Al-Qa‘ida van het Arabisch Schiereiland",
+        "Al-Qaeda en la península arábiga",
+        "Al-Qaid a de l’organisation du Djihad dans la péninsule arabique",
+        "Al-Qaida au Yémen",
+        "Al-Qaida dans la péninsule arabique",
+        "Al-Qaida dans la péninsule sud-arabique",
+        "Al-Qaida din Peninsula Arabia de Sud",
+        "Al-Qaida din Peninsula Arabia",
+        "Al-Qaida din Yemen",
+        "Al-Qaida fil-Jemen",
+        "Al-Qaida fil-Peniżola Għarbija",
+        "Al-Qaida fil-Peniżola t'Isfel Għarbija",
+        "Al-Qaida i den sydlige del af Den Arabiske Halvø",
+        "Al-Qaida i Yemen",
+        "Al-Qaida in the Arabian Peninsula",
+        "Al-Qaida in the South Arabian Peninsula",
+        "Al-Qaida in Yemen",
+        "Al-Qaida iz Jemna",
+        "Al-Qaida of Jihad Organization din Peninsula Arabia",
+        "Al-Qaida of Jihad Organization in the Arabian Peninsula",
+        "Al-Qaida of Jihad Organization på Den Arabiske Halvø,",
+        "Al-Qaida Organization fil-Peniżola Għarbija",
+        "Al-Qaida Organization in the Arabian Peninsula",
+        "Al-Qaida Organization på Den Arabiske Halvø",
+        "Al-Qaida på Den Arabiske Halvø",
+        "Al-Qaida tal-Jihad Organization fil-Peniżola Għarbija,",
+        "Al-Qaida στην Αραβική Χερσόνησο",
+        "Al-Qaida στην Νότια Αραβική Χερσόνησο",
+        "Al-Qaida στην Υεμένη",
+        "Al-Qaida της οργάνωσης Jihad στην Αραβική Χερσόνησο",
+        "Ansar al-Shari’a",
+        "AQAP",
+        "AQPA",
+        "AQY",
+        "organisation Al-Qaida dans la péninsule arabique",
+        "organizacija Al-Kaida z Arabskega polotoka",
+        "Organizacja dżihadu na Półwyspie arabskim Al-Kaida,",
+        "Organizacja na Półwyspie Arabskim Al-Kaida",
+        "Organizația Al-Qaida din Peninsula Arabia",
+        "Tanzim Qa'idat al-Jihad fi Jazirat al-Arabm"
+      ]
+    },
+    {
+      "name": "Université Malek Ashtar",
+      "logicalId": 5286,
+      "sanctioned": true,
+      "relevance": 1.0,
+      "matchingAlias": "Université Malek Ashtar",
+      "otherAliases": [
+        "Malek Ashtar universitetas",
+        "Malek Ashtar University",
+        "Malek Ashtar-Universität",
+        "Universidade Malek Ashtar",
+        "Università Malek Ashtar",
+        "Università Malek Ashtar",
+        "Universitatea Malek Ashtar",
+        "Univerza za obrambno tehnologijo Malek Ashtar",
+        "Univerzita Malek Ashtar",
+        "Univerzita Maleka Aštara",
+        "Πανεπιστήμιο Malek Ashtar",
+        "Университет Malek Ashtar"
+      ]
+    },
+    {
+      "name": "Iran Modern Devices",
+      "logicalId": 6446,
+      "sanctioned": true,
+      "relevance": 0.8,
+      "matchingAlias": "Aran Modern Devices",
+      "otherAliases": ["AMD"]
+    },
+    {
+      "name": "Pop Credit Bank",
+      "logicalId": 6897,
+      "sanctioned": true,
+      "relevance": 0.8,
+      "matchingAlias": "Popular Credit Bank",
+      "otherAliases": ["Banca Populară de Credit"]
+    },
+    {
+      "name": "KCST",
+      "logicalId": 7212,
+      "sanctioned": true,
+      "relevance": 1.0,
+      "matchingAlias": "KCST",
+      "otherAliases": []
+    }
+  ]
+}

@@ -22,15 +22,16 @@ type databaseOpts interface {
 }
 
 type dbInfo struct {
-	srcURL string
-	host   string
-	port   string
-	user   string
-	dbName string
+	srcURL   string
+	host     string
+	port     string
+	user     string
+	dbName   string
+	password string
 }
 
-func newPGInfo(srcURL, user, dbName string) *dbInfo {
-	return &dbInfo{srcURL: srcURL, host: "postgres", port: "5432", user: user, dbName: dbName}
+func newPGInfo(srcURL, user, dbName, password string) *dbInfo {
+	return &dbInfo{srcURL: srcURL, host: "postgres", port: "5432", user: user, dbName: dbName, password: password}
 }
 
 type SanctionItem struct {
@@ -74,12 +75,15 @@ func (d *dbInfo) fetchData() ([]SanctionItem, error) {
 
 func (d *dbInfo) getDBConnection() (*sql.DB, error) {
 
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable",
-		d.host, d.port, d.user, d.dbName)
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		d.host, d.port, d.user, d.dbName, d.password)
+
+	log.Printf("psqlInfo is: %s", psqlInfo)
 	db, err := sql.Open("postgres", psqlInfo)
+	log.Println("got past open!")
 	if err != nil {
 
-		fmt.Printf("error getting db connection, error is: %s", err.Error())
+		log.Printf("error getting db connection, error is: %s", err.Error())
 		// if connection succeeds but dbName doesn't exist then create it
 		_, err := db.Exec("CREATE DATABASE %s", d.dbName)
 		if err != nil {
@@ -97,7 +101,7 @@ func (d *dbInfo) getDBConnection() (*sql.DB, error) {
 		return nil, err
 	}
 
-	fmt.Println("Successfully connected!")
+	log.Println("Successfully connected!")
 
 	return db, nil
 
@@ -154,17 +158,17 @@ func main() {
 
 	go func() {
 
-		dbInfo := newPGInfo(config.SanctionsBackend.URL, config.Database.User, config.Database.DBName)
+		dbInfo := newPGInfo(config.SanctionsBackend.URL, config.Database.User, config.Database.DBName, config.Database.Password)
 
 		_, err = dbInfo.getDBConnection()
 		if err != nil {
-			fmt.Println("Could not get db connection")
+			log.Printf("Could not get db connection: %s", err.Error())
+			return
 		}
 		_, err = dbInfo.fetchData()
 	}()
-
 	// start up the server
-	fmt.Printf("config details: dbName: %s, user: %s", config.Database.DBName, config.Database.User)
+	log.Printf("config details: dbName: %s, user: %s", config.Database.DBName, config.Database.User)
 	r := mux.NewRouter()
 	r.HandleFunc("/", homeHandler).Methods(http.MethodGet)
 	fmt.Println("starting server on something!")

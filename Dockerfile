@@ -13,4 +13,4 @@ RUN apk add --no-cache bash coreutils grep sed
 COPY --from=builder /go/bin/sigma-ratings /go/bin/sigma-ratings
 ADD appconfig.yml /go/bin/
 
-ENTRYPOINT ["/bin/bash", "-c", "/go/bin/sigma-ratings"]
+ENTRYPOINT ["/go/bin/sigma-ratings"]

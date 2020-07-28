@@ -1,18 +1,21 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 
+	"github.com/gorilla/mux"
+	_ "github.com/lib/pq"
 	csvlib "github.com/smartystreets/scanners/csv"
+	"gopkg.in/yaml.v2"
 )
 
-const (
-	host   = "localhost"
-	port   = 5432
-	user   = "postgres"
-	dbName = "sanctions"
-)
+const configPath = "go/bin/appconfig.yml"
 
 type databaseOpts interface {
 	fetchData() ([][]string, error)
@@ -21,9 +24,13 @@ type databaseOpts interface {
 type dbInfo struct {
 	srcURL string
 	host   string
-	port   int
+	port   string
 	user   string
 	dbName string
+}
+
+func newPGInfo(srcURL, user, dbName string) *dbInfo {
+	return &dbInfo{srcURL: srcURL, host: "postgres", port: "5432", user: user, dbName: dbName}
 }
 
 type SanctionItem struct {
@@ -44,7 +51,6 @@ func scanDataToSanctionsList(reader io.Reader) ([]SanctionItem, error) {
 		if err := scanner.Populate(&sanctionItem); err != nil {
 			return nil, err
 		}
-		//fmt.Printf("%#v\n", sanctionItem)
 		sanctions = append(sanctions, sanctionItem)
 	}
 
@@ -56,8 +62,6 @@ func scanDataToSanctionsList(reader io.Reader) ([]SanctionItem, error) {
 
 }
 
-// returns a file pointer to a csv
-
 func (d *dbInfo) fetchData() ([]SanctionItem, error) {
 	resp, err := http.Get(d.srcURL)
 	if err != nil {
@@ -66,15 +70,43 @@ func (d *dbInfo) fetchData() ([]SanctionItem, error) {
 
 	defer resp.Body.Close()
 	return scanDataToSanctionsList(resp.Body)
+}
+
+func (d *dbInfo) getDBConnection() (*sql.DB, error) {
+
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable",
+		d.host, d.port, d.user, d.dbName)
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+
+		fmt.Printf("error getting db connection, error is: %s", err.Error())
+		// if connection succeeds but dbName doesn't exist then create it
+		_, err := db.Exec("CREATE DATABASE %s", d.dbName)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, err
+	}
+
+	//not sure how to handle this yet
+	//defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("Successfully connected!")
+
+	return db, nil
 
 }
 
 /*
-func ReadIntoDatabase(data [][]string, dbURL string) {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"dbname=%s sslmode=disable",
-		host, port, user, dbname)
-	db, err := sql.Open("postgres", psqlInfo)
+func InsertRecords(items []SanctionItem, db *sql.DB) {
+
+	//
 	if err != nil {
 		_, err := db.Exec("CREATE DATABASE %s", dbname)
 		if err != nil {
@@ -94,10 +126,49 @@ func ReadIntoDatabase(data [][]string, dbURL string) {
 }
 */
 
-func main() {
-	dbInfo := &dbInfo{srcURL: "https://sigmaratings.s3.us-east-2.amazonaws.com/eu_sanctions.csv",
-		host: host, port: port, user: user, dbName: dbName}
+func readConfig(cfg *Config) error {
+	//f, err := os.Open(configPath)
+	conf, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return err
+	}
+	conf = []byte(os.ExpandEnv(string(conf)))
+	//err = yaml.NewDecoder(f).Decode(cfg)
+	//if err != nil {
+	//	return err
+	//}
+	//return nil
+	if err := yaml.Unmarshal(conf, cfg); err != nil {
+		return err
+	}
+	return nil
+}
 
-	dbInfo.fetchData()
+func main() {
+
+	var config Config
+	err := readConfig(&config)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	go func() {
+
+		dbInfo := newPGInfo(config.SanctionsBackend.URL, config.Database.User, config.Database.DBName)
+
+		_, err = dbInfo.getDBConnection()
+		if err != nil {
+			fmt.Println("Could not get db connection")
+		}
+		_, err = dbInfo.fetchData()
+	}()
+
+	// start up the server
+	fmt.Printf("config details: dbName: %s, user: %s", config.Database.DBName, config.Database.User)
+	r := mux.NewRouter()
+	r.HandleFunc("/", homeHandler).Methods(http.MethodGet)
+	fmt.Println("starting server on something!")
+	var handler http.Handler = r
+	log.Fatal(http.ListenAndServe("localhost:"+"8080", handler))
 
 }

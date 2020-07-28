@@ -1,0 +1,10 @@
+database:
+  user: ${POSTGRES_USER}
+  dbName: ${POSTGRES_DB}
+  password: ${POSTGRES_PASSWORD}
+
+sanctionsBackend:
+  URL: "https://sigmaratings.s3.us-east-2.amazonaws.com/eu_sanctions.csv"
+
+frontend:
+  port: 8080

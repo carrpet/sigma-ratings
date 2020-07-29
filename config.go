@@ -2,16 +2,16 @@ package main
 
 type Config struct {
 	Database struct {
-		User     string `yaml:"user", envconfig: "POSTGRES_USER"`
-		DBName   string `yaml:"dbName", envconfig: "POSTGRES_DB"`
-		Password string `yaml:"password", envconfig: "POSTGRES_PASSWORD"`
-	} `yaml:"database"`
+		User     string `env:"POSTGRES_USER,required"`
+		DBName   string `env:"POSTGRES_DB,required"`
+		Password string `env:"POSTGRES_PASSWORD,required"`
+	}
 
 	SanctionsBackend struct {
-		URL string `yaml:"url"`
-	} `yaml:"sanctionsBackend"`
+		URL string `env:"SANCTIONS_URL,default=https://sigmaratings.s3.us-east-2.amazonaws.com/eu_sanctions.csv"`
+	}
 
 	FrontEnd struct {
-		Port string `yaml:"port"`
+		Port string `env:"SRV_PORT,default=8080"`
 	}
 }

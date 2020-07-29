@@ -1,18 +1,17 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"github.com/sethvargo/go-envconfig"
 	csvlib "github.com/smartystreets/scanners/csv"
-	"gopkg.in/yaml.v2"
 )
 
 const configPath = "go/bin/appconfig.yml"
@@ -130,37 +129,18 @@ func InsertRecords(items []SanctionItem, db *sql.DB) {
 }
 */
 
-func readConfig(cfg *Config) error {
-	//f, err := os.Open(configPath)
-	conf, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return err
-	}
-	conf = []byte(os.ExpandEnv(string(conf)))
-	//err = yaml.NewDecoder(f).Decode(cfg)
-	//if err != nil {
-	//	return err
-	//}
-	//return nil
-	if err := yaml.Unmarshal(conf, cfg); err != nil {
-		return err
-	}
-	return nil
-}
-
 func main() {
 
 	var config Config
-	err := readConfig(&config)
-	if err != nil {
-		log.Fatal(err.Error())
+	if err := envconfig.Process(context.Background(), &config); err != nil {
+		log.Fatal(err)
 	}
 
 	go func() {
 
 		dbInfo := newPGInfo(config.SanctionsBackend.URL, config.Database.User, config.Database.DBName, config.Database.Password)
 
-		_, err = dbInfo.getDBConnection()
+		_, err := dbInfo.getDBConnection()
 		if err != nil {
 			log.Printf("Could not get db connection: %s", err.Error())
 			return
@@ -171,8 +151,8 @@ func main() {
 	log.Printf("config details: dbName: %s, user: %s", config.Database.DBName, config.Database.User)
 	r := mux.NewRouter()
 	r.HandleFunc("/", homeHandler).Methods(http.MethodGet)
-	fmt.Println("starting server on something!")
+	log.Printf("starting server on localhost:%s", config.FrontEnd.Port)
 	var handler http.Handler = r
-	log.Fatal(http.ListenAndServe("localhost:"+"8080", handler))
+	log.Fatal(http.ListenAndServe("localhost:"+config.FrontEnd.Port, handler))
 
 }

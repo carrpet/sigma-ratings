@@ -7,6 +7,7 @@ require (
 	github.com/jackc/pgx/v4 v4.7.2
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lib/pq v1.3.0
+	github.com/sethvargo/go-envconfig v0.2.2 // indirect
 	github.com/smartystreets/scanners v1.0.3
 	gopkg.in/yaml.v2 v2.2.2
 )

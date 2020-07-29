@@ -4,13 +4,11 @@ WORKDIR $GOPATH/src/github.com/carrpet/sigma-ratings
 
 COPY . .
 
-RUN go build -o /go/bin/sigma-ratings
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /go/bin/sigma-ratings 
 
 # Use any base image you need
-FROM alpine:latest
+FROM scratch
 
-RUN apk add --no-cache bash coreutils grep sed
-COPY --from=builder /go/bin/sigma-ratings /go/bin/sigma-ratings
-ADD appconfig.yml /go/bin/
+COPY --from=builder /go/bin/sigma-ratings /sigma-ratings
 
-ENTRYPOINT ["/go/bin/sigma-ratings"]
+ENTRYPOINT ["/sigma-ratings"]

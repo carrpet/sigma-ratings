@@ -1,10 +1,5 @@
 package main
 
-import (
-	"strings"
-	"testing"
-)
-
 type dbMock struct {
 }
 
@@ -14,6 +9,7 @@ func (d *dbMock) fetchData() ([]string, error) {
 }
 */
 
+/*
 //TestFetchSanctions goes out to the database, reads csv containing sanctions into memory and
 // inserts it into the database
 func TestScanDataToSanctionsList(t *testing.T) {
@@ -46,3 +42,4 @@ func TestFetchData(t *testing.T) {
 		t.Logf("%#v\n", d)
 	}
 }
+*/

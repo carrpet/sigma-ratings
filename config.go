@@ -8,7 +8,7 @@ type Config struct {
 	}
 
 	SanctionsBackend struct {
-		URL string `env:"SANCTIONS_URL,default=https://sigmaratings.s3.us-east-2.amazonaws.com/eu_sanctions.csv"`
+		URL string `env:"SANCTIONS_URL,default=http://sigmaratings.s3.us-east-2.amazonaws.com/eu_sanctions.csv"`
 	}
 
 	FrontEnd struct {

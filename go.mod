@@ -1,13 +1,10 @@
-module github.com/carrpet/sigma-ratings/sanctions
+module github.com/carrpet/sigma-ratings
 
 go 1.13
 
 require (
 	github.com/gorilla/mux v1.7.4
-	github.com/jackc/pgx/v4 v4.7.2
-	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/lib/pq v1.3.0
-	github.com/sethvargo/go-envconfig v0.2.2 // indirect
+	github.com/lib/pq v1.8.0
+	github.com/sethvargo/go-envconfig v0.2.3
 	github.com/smartystreets/scanners v1.0.3
-	gopkg.in/yaml.v2 v2.2.2
 )

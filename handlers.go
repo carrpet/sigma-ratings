@@ -31,12 +31,11 @@ func statusHandlerFactory(availableCh chan interface{}) func(w http.ResponseWrit
 func searchHandlerFactory(dbInfo *sanction.DBInfo) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nameQuery := r.URL.Query().Get("name")
-		log.Printf("Name is: %s", nameQuery)
 		if nameQuery == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		results, err := dbInfo.QuerySanctionsByName(nameQuery)
+		results, err := dbInfo.GetRelevantSanctionAndAliases(nameQuery)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

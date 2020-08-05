@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"log"
 
 	"github.com/lib/pq"
 )
@@ -16,6 +15,13 @@ type SanctionMatchResponse struct {
 	LogicalID string  `json:"logical_id"`
 	WholeName string  `json:"whole_name"`
 	Relevance float32 `json:"relevance"`
+}
+
+type SanctionResponse struct {
+	LogicalID     string   `json:"logicalId"`
+	MatchingAlias string   `json:"matchingAlias"`
+	OtherAliases  []string `json:"otherAliases"`
+	Relevance     float32  `json:"relevance"`
 }
 
 func seedSanctionsTxn(sanctions []SanctionItem, db *sql.DB) error {
@@ -45,17 +51,6 @@ func seedSanctionsTxn(sanctions []SanctionItem, db *sql.DB) error {
 		txn.Rollback()
 		return err
 	}
-
-	rows, _ := txn.Query("SELECT column_name FROM information_schema.columns WHERE table_name = 'sanctions';")
-	log.Println("getting table info")
-	for rows.Next() {
-		var col_name string
-		if err := rows.Scan(&col_name); err != nil {
-			log.Println(err.Error())
-		}
-		log.Printf("col_name is: %s", col_name)
-	}
-	log.Println("end of column info ")
 
 	stmt, err := txn.Prepare(pq.CopyIn("sanctions", "logical_id", "whole_name"))
 	if err != nil {
@@ -181,4 +176,22 @@ func QuerySanctionsName(name string, db *sql.DB) ([]SanctionMatchResponse, error
 	}
 	return results, nil
 
+}
+
+func GetAliasesForLogicalID(name string, id string, db *sql.DB) ([]SanctionItem, error) {
+	queryStr := "SELECT logical_id, whole_name FROM sanctions WHERE logical_id = $1 AND NOT whole_name = '' AND NOT whole_name = $2 ORDER BY whole_name ASC"
+	rows, err := db.Query(queryStr, id, name)
+	if err != nil {
+		return nil, err
+	}
+
+	results := []SanctionItem{}
+	for rows.Next() {
+		var resp SanctionItem
+		if err := rows.Scan(&resp.LogicalID, &resp.WholeName); err != nil {
+			return nil, err
+		}
+		results = append(results, resp)
+	}
+	return results, nil
 }

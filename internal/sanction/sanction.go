@@ -15,14 +15,10 @@ var dbInstance *sql.DB
 
 type SanctionsOpts interface {
 	PopulateSanctions([]database.SanctionItem) error
-	SearchSanctions() []SanctionsResult
 }
 
 type SanctionsBackendOpts interface {
 	GetSanctionsList(url string) ([]database.SanctionItem, error)
-}
-
-type SanctionsResult struct {
 }
 
 type DBInfo struct {
@@ -131,6 +127,39 @@ func (d *DBInfo) getDBConnection() (*sql.DB, error) {
 
 	return dbInstance, nil
 
+}
+
+func (d *DBInfo) GetRelevantSanctionAndAliases(name string) ([]database.SanctionResponse, error) {
+	sanctions, err := d.QuerySanctionsByName(name)
+	if err != nil {
+		return nil, err
+	}
+	db, err := d.getDBConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	results := []database.SanctionMatchResponse{}
+	for _, item := range sanctions {
+		results = append(results, item)
+		if item.Relevance < 1 {
+			break
+		}
+	}
+
+	resp := []database.SanctionResponse{}
+	for _, r := range results {
+		aliasList := []string{}
+		aliases, err := database.GetAliasesForLogicalID(r.WholeName, r.LogicalID, db)
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range aliases {
+			aliasList = append(aliasList, s.WholeName)
+		}
+		resp = append(resp, database.SanctionResponse{LogicalID: r.LogicalID, MatchingAlias: r.WholeName, OtherAliases: aliasList, Relevance: r.Relevance})
+	}
+	return resp, nil
 }
 
 func (d *DBInfo) QuerySanctionsByName(name string) ([]database.SanctionMatchResponse, error) {

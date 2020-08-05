@@ -11,4 +11,6 @@ FROM scratch
 
 COPY --from=builder /go/bin/sigma-ratings /sigma-ratings
 
+EXPOSE 8080
+
 ENTRYPOINT ["/sigma-ratings"]

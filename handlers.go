@@ -30,12 +30,22 @@ func statusHandlerFactory(availableCh chan interface{}) func(w http.ResponseWrit
 
 func searchHandlerFactory(dbInfo *sanction.DBInfo) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		nameQuery := r.URL.Query().Get("name")
-		if nameQuery == "" {
-			w.WriteHeader(http.StatusBadRequest)
+		err := r.ParseForm()
+		if err != nil {
+			log.Println("Could not parse request form")
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		results, err := dbInfo.GetRelevantSanctionAndAliases(nameQuery)
+		nameParam := r.Form.Get("name")
+
+		/*
+			nameQuery := r.URL.Query().Get("name")
+			if nameQuery == "" {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		*/
+		results, err := dbInfo.GetRelevantSanctionAndAliases(nameParam)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

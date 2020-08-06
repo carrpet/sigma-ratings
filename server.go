@@ -50,7 +50,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", homeHandler).Methods(http.MethodGet)
 	r.HandleFunc("/status", statusHandlerFactory(availableCh)).Methods(http.MethodGet)
-	r.HandleFunc("/search", searchHandlerFactory(pgInfo)).Methods(http.MethodGet).Headers("Accept", "application/json")
+	r.HandleFunc("/search", searchHandlerFactory(pgInfo)).Methods(http.MethodGet)
 	log.Printf("starting server on 0.0.0.0:%s", config.FrontEnd.Port)
 	var handler http.Handler = r
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+config.FrontEnd.Port, handler))

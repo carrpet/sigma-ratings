@@ -7,18 +7,18 @@ import (
 )
 
 type SanctionItem struct {
-	LogicalID string `csv:"Entity_LogicalId"`
+	LogicalID int    `csv:"Entity_LogicalId"`
 	WholeName string `csv:"NameAlias_WholeName"`
 }
 
 type SanctionMatchResponse struct {
-	LogicalID string  `json:"logical_id"`
+	LogicalID int     `json:"logical_id"`
 	WholeName string  `json:"whole_name"`
 	Relevance float32 `json:"relevance"`
 }
 
 type SanctionResponse struct {
-	LogicalID     string   `json:"logicalId"`
+	LogicalID     int      `json:"logicalId"`
 	MatchingAlias string   `json:"matchingAlias"`
 	OtherAliases  []string `json:"otherAliases"`
 	Relevance     float32  `json:"relevance"`
@@ -178,7 +178,7 @@ func QuerySanctionsName(name string, db *sql.DB) ([]SanctionMatchResponse, error
 
 }
 
-func GetAliasesForLogicalID(name string, id string, db *sql.DB) ([]SanctionItem, error) {
+func GetAliasesForLogicalID(name string, id int, db *sql.DB) ([]SanctionItem, error) {
 	queryStr := "SELECT logical_id, whole_name FROM sanctions WHERE logical_id = $1 AND NOT whole_name = '' AND NOT whole_name = $2 ORDER BY whole_name ASC"
 	rows, err := db.Query(queryStr, id, name)
 	if err != nil {

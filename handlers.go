@@ -9,12 +9,6 @@ import (
 	"github.com/carrpet/sigma-ratings/internal/sanction"
 )
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Handling request!!!")
-	w.Header().Set("Content-Type", "application/json")
-
-}
-
 func statusHandlerFactory(availableCh chan interface{}) func(w http.ResponseWriter, r *http.Request) {
 
 	currentStatus := http.StatusServiceUnavailable
@@ -28,7 +22,7 @@ func statusHandlerFactory(availableCh chan interface{}) func(w http.ResponseWrit
 	}
 }
 
-func searchHandlerFactory(dbInfo *sanction.DBInfo) func(w http.ResponseWriter, r *http.Request) {
+func searchHandlerFactory(client sanction.SanctionsDB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
@@ -38,14 +32,7 @@ func searchHandlerFactory(dbInfo *sanction.DBInfo) func(w http.ResponseWriter, r
 		}
 		nameParam := r.Form.Get("name")
 
-		/*
-			nameQuery := r.URL.Query().Get("name")
-			if nameQuery == "" {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-		*/
-		results, err := dbInfo.GetRelevantSanctionAndAliases(nameParam)
+		results, err := client.GetRelevantSanctionAndAliases(nameParam)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

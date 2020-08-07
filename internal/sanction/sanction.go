@@ -1,8 +1,6 @@
 package sanction
 
 import (
-	"database/sql"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -11,67 +9,60 @@ import (
 	"github.com/smartystreets/scanners/csv"
 )
 
-var dbInstance *sql.DB
-
-type SanctionsOpts interface {
-	PopulateSanctions([]database.SanctionItem) error
+type SanctionsDB interface {
+	InitSanctionsData() error
+	GetRelevantSanctionAndAliases(string) ([]SanctionResponse, error)
 }
 
-type SanctionsBackendOpts interface {
-	GetSanctionsList(url string) ([]database.SanctionItem, error)
+type SanctionResponse struct {
+	LogicalID     int      `json:"logicalId"`
+	MatchingAlias string   `json:"matchingAlias"`
+	OtherAliases  []string `json:"otherAliases"`
+	Relevance     float32  `json:"relevance"`
 }
 
-type DBInfo struct {
-	host     string
-	port     string
-	user     string
-	dbName   string
-	password string
+type SanctionsClient struct {
+	DBInfo       database.DBOperations
+	SanctionsURL SanctionsBackend
 }
 
-func NewPGInfo(user, dbName, password string) *DBInfo {
-	return &DBInfo{host: "postgres", port: "5432", user: user, dbName: dbName, password: password}
+type SanctionsBackend interface {
+	GetSanctionsList() ([]database.SanctionItem, error)
 }
 
-func (d *DBInfo) QuerySanctionsTableExistence() (bool, error) {
+type SanctionsURL struct {
+	URL string
+}
 
-	db, err := d.getDBConnection()
-	if err != nil {
-		return false, err
-	}
-
-	tableExistsQuery := "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'sanctions')"
-	row := db.QueryRow(tableExistsQuery)
-	var exists bool
-	err = row.Scan(&exists)
-	if err != nil {
-		log.Printf("query sanction table returned error: %s", err.Error())
-		return false, err
-
-	}
-	return exists, nil
+func NewSanctionsClient(dbName, user, password, url string) SanctionsDB {
+	dbInfo := database.NewPGInfo(user, dbName, password)
+	return SanctionsClient{DBInfo: dbInfo, SanctionsURL: SanctionsURL{URL: url}}
 
 }
 
-func (d *DBInfo) PopulateSanctions(items []database.SanctionItem) error {
+func (c SanctionsClient) InitSanctionsData() error {
+	exists, _ := c.DBInfo.QuerySanctionsTableExists()
+	if !exists {
+		log.Println("sanctions table doesn't exist, seeding db")
+		items, err := c.SanctionsURL.GetSanctionsList()
+		if err != nil {
+			return err
+		}
 
-	//establish db connection
-	db, err := d.getDBConnection()
-	if err != nil {
-		return err
-	}
-	err = database.SeedSanctionsDB(items, db)
-	if err != nil {
-		return err
+		err = c.DBInfo.InsertSanctionsTxn(items)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+
 }
 
-func (d *DBInfo) GetSanctionsList(url string) ([]database.SanctionItem, error) {
+func (s SanctionsURL) GetSanctionsList() ([]database.SanctionItem, error) {
 
-	resp, err := http.Get(url)
-	log.Printf("Retrieving sanctions list from: %s", url)
+	resp, err := http.Get(s.URL)
+	log.Printf("Retrieving sanctions list from: %s", s.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -106,35 +97,9 @@ func scanDataToSanctionsList(reader io.Reader) ([]database.SanctionItem, error) 
 
 }
 
-func (d *DBInfo) getDBConnection() (*sql.DB, error) {
+func (c SanctionsClient) GetRelevantSanctionAndAliases(name string) ([]SanctionResponse, error) {
 
-	if dbInstance == nil {
-		psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
-			d.host, d.port, d.user, d.dbName, d.password)
-
-		log.Printf("psqlInfo is: %s", psqlInfo)
-		db, err := sql.Open("postgres", psqlInfo)
-		if err != nil {
-			return nil, err
-		}
-
-		err = db.Ping()
-		if err != nil {
-			return nil, err
-		}
-		dbInstance = db
-	}
-
-	return dbInstance, nil
-
-}
-
-func (d *DBInfo) GetRelevantSanctionAndAliases(name string) ([]database.SanctionResponse, error) {
-	sanctions, err := d.QuerySanctionsByName(name)
-	if err != nil {
-		return nil, err
-	}
-	db, err := d.getDBConnection()
+	sanctions, err := c.DBInfo.QuerySanctionsName(name)
 	if err != nil {
 		return nil, err
 	}
@@ -147,25 +112,17 @@ func (d *DBInfo) GetRelevantSanctionAndAliases(name string) ([]database.Sanction
 		}
 	}
 
-	resp := []database.SanctionResponse{}
+	resp := []SanctionResponse{}
 	for _, r := range results {
 		aliasList := []string{}
-		aliases, err := database.GetAliasesForLogicalID(r.WholeName, r.LogicalID, db)
+		aliases, err := c.DBInfo.GetAliasesForLogicalID(r.WholeName, r.LogicalID)
 		if err != nil {
 			return nil, err
 		}
 		for _, s := range aliases {
 			aliasList = append(aliasList, s.WholeName)
 		}
-		resp = append(resp, database.SanctionResponse{LogicalID: r.LogicalID, MatchingAlias: r.WholeName, OtherAliases: aliasList, Relevance: r.Relevance})
+		resp = append(resp, SanctionResponse{LogicalID: r.LogicalID, MatchingAlias: r.WholeName, OtherAliases: aliasList, Relevance: r.Relevance})
 	}
 	return resp, nil
-}
-
-func (d *DBInfo) QuerySanctionsByName(name string) ([]database.SanctionMatchResponse, error) {
-	db, err := d.getDBConnection()
-	if err != nil {
-		return nil, err
-	}
-	return database.QuerySanctionsName(name, db)
 }

@@ -2,6 +2,8 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
+	"log"
 
 	"github.com/lib/pq"
 )
@@ -17,14 +19,33 @@ type SanctionMatchResponse struct {
 	Relevance float32 `json:"relevance"`
 }
 
-type SanctionResponse struct {
-	LogicalID     int      `json:"logicalId"`
-	MatchingAlias string   `json:"matchingAlias"`
-	OtherAliases  []string `json:"otherAliases"`
-	Relevance     float32  `json:"relevance"`
+type DBInfo struct {
+	host     string
+	port     string
+	user     string
+	dbName   string
+	password string
 }
 
-func seedSanctionsTxn(sanctions []SanctionItem, db *sql.DB) error {
+type DBOperations interface {
+	QuerySanctionsTableExists() (bool, error)
+	InsertSanctionsTxn([]SanctionItem) error
+	QuerySanctionsName(string) ([]SanctionMatchResponse, error)
+	GetAliasesForLogicalID(string, int) ([]SanctionItem, error)
+}
+
+var dbInstance *sql.DB
+
+func NewPGInfo(user, dbName, password string) DBOperations {
+	return DBInfo{host: "postgres", port: "5432", user: user, dbName: dbName, password: password}
+}
+
+func (d DBInfo) InsertSanctionsTxn(sanctions []SanctionItem) error {
+
+	db, err := d.getInstance()
+	if err != nil {
+		return err
+	}
 
 	txn, err := db.Begin()
 
@@ -87,78 +108,12 @@ func seedSanctionsTxn(sanctions []SanctionItem, db *sql.DB) error {
 
 }
 
-// SeedSanctionsDB initializes the database with the sanctions list
-func SeedSanctionsDB(sanctions []SanctionItem, db *sql.DB) error {
+func (d DBInfo) QuerySanctionsName(name string) ([]SanctionMatchResponse, error) {
 
-	return seedSanctionsTxn(sanctions, db)
-
-	/*
-		tableCreateCmd := "CREATE TABLE IF NOT EXISTS sanctions (id SERIAL PRIMARY KEY, logical_id integer NOT NULL, whole_name VARCHAR NOT NULL);"
-		_, err := db.Exec(tableCreateCmd)
-		if err != nil {
-			return err
-		}
-
-		// install trgm extension
-		trgmExtCmd := "CREATE EXTENSION IF NOT EXISTS pg_trgm"
-		_, err = db.Exec(trgmExtCmd)
-		if err != nil {
-			return err
-		}
-
-		//create index to speed up similarity lookup
-		indexCreateCmd := "CREATE INDEX IF NOT EXISTS trgm_index ON sanctions USING GIN (whole_name gin_trgm_ops)"
-		_, err = db.Exec(indexCreateCmd)
-		if err != nil {
-			return err
-		}
-
-		rows, _ := db.Query("SELECT column_name FROM information_schema.columns WHERE table_name = 'sanctions';")
-		log.Println("getting table info")
-		for rows.Next() {
-			var col_name string
-			if err := rows.Scan(&col_name); err != nil {
-				log.Fatal(err)
-			}
-			log.Printf("col_name is: %s", col_name)
-		}
-		log.Println("end of column info ")
-
-		txn, err := db.Begin()
-		if err != nil {
-			return err
-		}
-		stmt, err := txn.Prepare(pq.CopyIn("sanctions", "logical_id", "whole_name"))
-		if err != nil {
-			return err
-		}
-
-		for _, s := range sanctions {
-			_, err = stmt.Exec(s.LogicalID, s.WholeName)
-			if err != nil {
-				return err
-			}
-		}
-
-		_, err = stmt.Exec()
-		if err != nil {
-			return err
-		}
-
-		err = stmt.Close()
-		if err != nil {
-			return err
-		}
-
-		err = txn.Commit()
-		if err != nil {
-			return err
-		}
-		return nil
-	*/
-}
-
-func QuerySanctionsName(name string, db *sql.DB) ([]SanctionMatchResponse, error) {
+	db, err := d.getInstance()
+	if err != nil {
+		return nil, err
+	}
 	queryStr := "SELECT logical_id, whole_name, similarity(whole_name, $1) as sml from sanctions WHERE whole_name % $1 ORDER BY sml DESC, whole_name"
 	rows, err := db.Query(queryStr, name)
 	if err != nil {
@@ -178,7 +133,12 @@ func QuerySanctionsName(name string, db *sql.DB) ([]SanctionMatchResponse, error
 
 }
 
-func GetAliasesForLogicalID(name string, id int, db *sql.DB) ([]SanctionItem, error) {
+func (d DBInfo) GetAliasesForLogicalID(name string, id int) ([]SanctionItem, error) {
+
+	db, err := d.getInstance()
+	if err != nil {
+		return nil, err
+	}
 	queryStr := "SELECT logical_id, whole_name FROM sanctions WHERE logical_id = $1 AND NOT whole_name = '' AND NOT whole_name = $2 ORDER BY whole_name ASC"
 	rows, err := db.Query(queryStr, id, name)
 	if err != nil {
@@ -194,4 +154,47 @@ func GetAliasesForLogicalID(name string, id int, db *sql.DB) ([]SanctionItem, er
 		results = append(results, resp)
 	}
 	return results, nil
+}
+
+func (d DBInfo) getInstance() (*sql.DB, error) {
+
+	if dbInstance == nil {
+		psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+			d.host, d.port, d.user, d.dbName, d.password)
+
+		log.Printf("psqlInfo is: %s", psqlInfo)
+		db, err := sql.Open("postgres", psqlInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		err = db.Ping()
+		if err != nil {
+			return nil, err
+		}
+		dbInstance = db
+	}
+
+	return dbInstance, nil
+
+}
+
+func (d DBInfo) QuerySanctionsTableExists() (bool, error) {
+
+	db, err := d.getInstance()
+	if err != nil {
+		return false, err
+	}
+
+	tableExistsQuery := "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'sanctions')"
+	row := db.QueryRow(tableExistsQuery)
+	var exists bool
+	err = row.Scan(&exists)
+	if err != nil {
+		log.Printf("query sanction table returned error: %s", err.Error())
+		return false, err
+
+	}
+	return exists, nil
+
 }

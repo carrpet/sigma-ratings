@@ -27,6 +27,13 @@ type DBInfo struct {
 	password string
 }
 
+type MockDBInfo struct {
+	QueryTableExists func() (bool, error)
+	InsertTxn        func() error
+	QueryName        func() ([]SanctionMatchResponse, error)
+	GetAliases       func() ([]SanctionItem, error)
+}
+
 type DBOperations interface {
 	QuerySanctionsTableExists() (bool, error)
 	InsertSanctionsTxn([]SanctionItem) error
@@ -38,6 +45,11 @@ var dbInstance *sql.DB
 
 func NewPGInfo(user, dbName, password string) DBOperations {
 	return DBInfo{host: "postgres", port: "5432", user: user, dbName: dbName, password: password}
+}
+
+func (d MockDBInfo) InsertSanctionsTxn(sanctions []SanctionItem) error {
+
+	return d.InsertTxn()
 }
 
 func (d DBInfo) InsertSanctionsTxn(sanctions []SanctionItem) error {
@@ -108,6 +120,10 @@ func (d DBInfo) InsertSanctionsTxn(sanctions []SanctionItem) error {
 
 }
 
+func (m MockDBInfo) QuerySanctionsName(name string) ([]SanctionMatchResponse, error) {
+	return m.QueryName()
+}
+
 func (d DBInfo) QuerySanctionsName(name string) ([]SanctionMatchResponse, error) {
 
 	db, err := d.getInstance()
@@ -131,6 +147,10 @@ func (d DBInfo) QuerySanctionsName(name string) ([]SanctionMatchResponse, error)
 	}
 	return results, nil
 
+}
+
+func (m MockDBInfo) GetAliasesForLogicalID(name string, id int) ([]SanctionItem, error) {
+	return m.GetAliases()
 }
 
 func (d DBInfo) GetAliasesForLogicalID(name string, id int) ([]SanctionItem, error) {
@@ -177,6 +197,11 @@ func (d DBInfo) getInstance() (*sql.DB, error) {
 
 	return dbInstance, nil
 
+}
+
+func (d MockDBInfo) QuerySanctionsTableExists() (bool, error) {
+
+	return d.QueryTableExists()
 }
 
 func (d DBInfo) QuerySanctionsTableExists() (bool, error) {

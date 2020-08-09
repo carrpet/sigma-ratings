@@ -9,8 +9,6 @@ services:
       - .env
   api:
     build:
-      #context: stubs
-      #dockerfile: Dockerfile
       context: .
       dockerfile: Dockerfile
     ports:
@@ -20,10 +18,12 @@ services:
     env_file: 
       - .env
     restart: always
-     #volumes:
-    # - ./stubs:/stubs
-    # Uncomment links
-
+  api_tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - $PWD:/go/src/github.com/carrpet/sigma-ratings
   test:
     build:
       context: smoketest

@@ -6,7 +6,8 @@ setup:
 run: setup
 	docker-compose up api
 
-unit-test: ;
+unit-test: setup
+	docker-compose run --rm api_tests 
 
 smoke-test: setup
 	docker-compose run --rm test

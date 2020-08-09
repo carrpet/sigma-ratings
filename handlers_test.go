@@ -1,20 +1,28 @@
 package main
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/carrpet/sigma-ratings/internal/sanction"
 )
 
-func TestStatusHandler(t *testing.T) {
-	testRequest := httptest.NewRequest("GET", "/search", nil)
-	testRequest.URL.RawQuery = "name=foobar"
+func TestStatusHandlerReturnsUnavailableUntilItReceivesAMessage(t *testing.T) {
+	testRequest := httptest.NewRequest("GET", "/status", nil)
 	recorder := httptest.NewRecorder()
-	mockDB := sanction.MockDBInfo{}
-	sHandler := searchHandlerFactory(mockDB)
-	sHandler(recorder, testRequest)
-	if recorder.Code != 200 {
-		t.Fatal()
+	ch := make(chan interface{})
+	statusHandler := statusHandlerFactory(ch)
+	statusHandler(recorder, testRequest)
+	expectedCode := http.StatusServiceUnavailable
+	if recorder.Code != expectedCode {
+		t.Fatalf("Expected http code %d, received code %d", expectedCode, recorder.Code)
 	}
+
+	ch <- struct{}{}
+	recorder = httptest.NewRecorder()
+	statusHandler(recorder, testRequest)
+	expectedCode = http.StatusOK
+	if recorder.Code != expectedCode {
+		t.Fatalf("Expected http code %d, received code %d", expectedCode, recorder.Code)
+	}
+
 }

@@ -1,14 +1,9 @@
 package main
 
-type dbMock struct {
-}
-
 /*
-func (d *dbMock) fetchData() ([]string, error) {
-	return nil, nil
-}
-*/
+func TestServerStatusReturnsUnavailableUntilInitDataReturnsNil(t *testing.T) {
 
+}
 /*
 //TestFetchSanctions goes out to the database, reads csv containing sanctions into memory and
 // inserts it into the database

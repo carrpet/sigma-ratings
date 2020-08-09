@@ -1,0 +1,5 @@
+FROM golang:alpine 
+
+WORKDIR /go/src/github.com/carrpet/sigma-ratings
+
+CMD CGO_ENABLED=0 go test ./...

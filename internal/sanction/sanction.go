@@ -106,9 +106,13 @@ func (c SanctionsClient) GetRelevantSanctionAndAliases(name string) ([]SanctionR
 
 	results := []database.SanctionMatchResponse{}
 	for _, item := range sanctions {
-		results = append(results, item)
-		if item.Relevance < 1 {
+		if item.Relevance < 1 && len(results) == 0 {
+			results = append(results, item)
 			break
+		} else if item.Relevance < 1 {
+			break
+		} else {
+			results = append(results, item)
 		}
 	}
 

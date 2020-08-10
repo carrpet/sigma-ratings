@@ -8,17 +8,28 @@ import (
 	"github.com/lib/pq"
 )
 
+//DBOperations defines database operations for this package.
+type DBOperations interface {
+	QuerySanctionsTableExists() (bool, error)
+	InsertSanctionsTxn([]SanctionItem) error
+	QuerySanctionsName(string) ([]SanctionMatchResponse, error)
+	GetAliasesForLogicalID(string, int) ([]SanctionItem, error)
+}
+
+// SanctionItem represents items from the sanctions source.
 type SanctionItem struct {
 	LogicalID int    `csv:"Entity_LogicalId"`
 	WholeName string `csv:"NameAlias_WholeName"`
 }
 
+// SanctionMatchResponse respresents results from sanctions db queries.
 type SanctionMatchResponse struct {
 	LogicalID int     `json:"logical_id"`
 	WholeName string  `json:"whole_name"`
 	Relevance float32 `json:"relevance"`
 }
 
+// DBInfo holds db connection info.
 type DBInfo struct {
 	host     string
 	port     string
@@ -27,31 +38,14 @@ type DBInfo struct {
 	password string
 }
 
-type MockDBInfo struct {
-	QueryTableExists func() (bool, error)
-	InsertTxn        func() error
-	QueryName        func() ([]SanctionMatchResponse, error)
-	GetAliases       func() ([]SanctionItem, error)
-}
-
-type DBOperations interface {
-	QuerySanctionsTableExists() (bool, error)
-	InsertSanctionsTxn([]SanctionItem) error
-	QuerySanctionsName(string) ([]SanctionMatchResponse, error)
-	GetAliasesForLogicalID(string, int) ([]SanctionItem, error)
-}
-
 var dbInstance *sql.DB
 
+// NewPGInfo is a constructor for postgres connection info.
 func NewPGInfo(user, dbName, password string) DBOperations {
 	return DBInfo{host: "postgres", port: "5432", user: user, dbName: dbName, password: password}
 }
 
-func (d MockDBInfo) InsertSanctionsTxn(sanctions []SanctionItem) error {
-
-	return d.InsertTxn()
-}
-
+// InsertSanctionsTxn defines a table creation and buik insert of sanctions records into postgresql.
 func (d DBInfo) InsertSanctionsTxn(sanctions []SanctionItem) error {
 
 	db, err := d.getInstance()
@@ -120,10 +114,7 @@ func (d DBInfo) InsertSanctionsTxn(sanctions []SanctionItem) error {
 
 }
 
-func (m MockDBInfo) QuerySanctionsName(name string) ([]SanctionMatchResponse, error) {
-	return m.QueryName()
-}
-
+// QuerySanctionsName defines a sanctions query by name.
 func (d DBInfo) QuerySanctionsName(name string) ([]SanctionMatchResponse, error) {
 
 	db, err := d.getInstance()
@@ -149,10 +140,7 @@ func (d DBInfo) QuerySanctionsName(name string) ([]SanctionMatchResponse, error)
 
 }
 
-func (m MockDBInfo) GetAliasesForLogicalID(name string, id int) ([]SanctionItem, error) {
-	return m.GetAliases()
-}
-
+// GetAliasesForLogicalID retrieves all records having the logicalID with name not equal to the provided name.
 func (d DBInfo) GetAliasesForLogicalID(name string, id int) ([]SanctionItem, error) {
 
 	db, err := d.getInstance()
@@ -199,11 +187,7 @@ func (d DBInfo) getInstance() (*sql.DB, error) {
 
 }
 
-func (d MockDBInfo) QuerySanctionsTableExists() (bool, error) {
-
-	return d.QueryTableExists()
-}
-
+// QuerySanctionsTableExists returns a boolean indicating whether the sanctions table exists.
 func (d DBInfo) QuerySanctionsTableExists() (bool, error) {
 
 	db, err := d.getInstance()
@@ -222,4 +206,35 @@ func (d DBInfo) QuerySanctionsTableExists() (bool, error) {
 	}
 	return exists, nil
 
+}
+
+/* code for mocking and unit tests */
+
+// MockDBInfo is a mock.
+type MockDBInfo struct {
+	QueryTableExists func() (bool, error)
+	InsertTxn        func() error
+	QueryName        func() ([]SanctionMatchResponse, error)
+	GetAliases       func() ([]SanctionItem, error)
+}
+
+// InsertSanctionsTxn is a mock function.
+func (d MockDBInfo) InsertSanctionsTxn(sanctions []SanctionItem) error {
+	return d.InsertTxn()
+}
+
+// QuerySanctionsName is a mock function.
+func (d MockDBInfo) QuerySanctionsName(name string) ([]SanctionMatchResponse, error) {
+	return d.QueryName()
+}
+
+// GetAliasesForLogicalID is a mock function.
+func (d MockDBInfo) GetAliasesForLogicalID(name string, id int) ([]SanctionItem, error) {
+	return d.GetAliases()
+}
+
+// QuerySanctionsTableExists is a mock function.
+func (d MockDBInfo) QuerySanctionsTableExists() (bool, error) {
+
+	return d.QueryTableExists()
 }

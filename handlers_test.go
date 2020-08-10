@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/carrpet/sigma-ratings/internal/sanction"
 )
 
 func TestStatusHandlerReturnsUnavailableUntilItReceivesAMessage(t *testing.T) {
@@ -24,5 +26,17 @@ func TestStatusHandlerReturnsUnavailableUntilItReceivesAMessage(t *testing.T) {
 	if recorder.Code != expectedCode {
 		t.Fatalf("Expected http code %d, received code %d", expectedCode, recorder.Code)
 	}
+}
 
+//Test template for search handler.
+func TestSearchHandler(t *testing.T) {
+	testRequest := httptest.NewRequest("GET", "/search", nil)
+	testRequest.URL.RawQuery = "name=foo"
+	mockClient := sanction.NewMockSanctionsClient()
+	searchHandler := searchHandlerFactory(mockClient)
+	recorder := httptest.NewRecorder()
+	searchHandler(recorder, testRequest)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("Expected http code %d, received code %d", http.StatusOK, recorder.Code)
+	}
 }

@@ -9,37 +9,44 @@ import (
 	"github.com/smartystreets/scanners/csv"
 )
 
+// SanctionsDB defines sanctions operations.
 type SanctionsDB interface {
 	InitSanctionsData() error
-	GetRelevantSanctionAndAliases(string) ([]SanctionResponse, error)
+	GetRelevantSanctionAndAliases(string) ([]Response, error)
 }
 
-type SanctionResponse struct {
+// SanctionsBackend defines operations on sanctions source.
+type SanctionsBackend interface {
+	GetSanctionsList() ([]database.SanctionItem, error)
+}
+
+// Response represents sanctions api response.
+type Response struct {
 	LogicalID     int      `json:"logicalId"`
 	MatchingAlias string   `json:"matchingAlias"`
 	OtherAliases  []string `json:"otherAliases"`
 	Relevance     float32  `json:"relevance"`
 }
 
+// SanctionsClient represents client dependencies.
 type SanctionsClient struct {
 	DBInfo       database.DBOperations
 	SanctionsURL SanctionsBackend
 }
 
-type SanctionsBackend interface {
-	GetSanctionsList() ([]database.SanctionItem, error)
-}
-
+// SanctionsURL implements SanctionsBackend interface
 type SanctionsURL struct {
 	URL string
 }
 
+// NewSanctionsClient is a client constructor.
 func NewSanctionsClient(dbName, user, password, url string) SanctionsDB {
 	dbInfo := database.NewPGInfo(user, dbName, password)
 	return SanctionsClient{DBInfo: dbInfo, SanctionsURL: SanctionsURL{URL: url}}
-
 }
 
+// InitSanctionsData retrieves sanctions from the data source and inserts it into
+// the application database.
 func (c SanctionsClient) InitSanctionsData() error {
 	exists, _ := c.DBInfo.QuerySanctionsTableExists()
 	if !exists {
@@ -59,6 +66,7 @@ func (c SanctionsClient) InitSanctionsData() error {
 
 }
 
+// GetSanctionsList retrieves sanctions from the data source.
 func (s SanctionsURL) GetSanctionsList() ([]database.SanctionItem, error) {
 
 	resp, err := http.Get(s.URL)
@@ -71,6 +79,43 @@ func (s SanctionsURL) GetSanctionsList() ([]database.SanctionItem, error) {
 	return scanDataToSanctionsList(resp.Body)
 
 }
+
+// GetRelevantSanctionAndAliases searches for the closest match to provided name
+// and returns the matching sanction, relevance, and the other aliases for that entry.
+func (c SanctionsClient) GetRelevantSanctionAndAliases(name string) ([]Response, error) {
+
+	sanctions, err := c.DBInfo.QuerySanctionsName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	results := []database.SanctionMatchResponse{}
+	for _, item := range sanctions {
+		if item.Relevance < 1 && len(results) == 0 {
+			results = append(results, item)
+			break
+		} else if item.Relevance < 1 {
+			break
+		} else {
+			results = append(results, item)
+		}
+	}
+
+	resp := []Response{}
+	for _, r := range results {
+		aliasList := []string{}
+		aliases, err := c.DBInfo.GetAliasesForLogicalID(r.WholeName, r.LogicalID)
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range aliases {
+			aliasList = append(aliasList, s.WholeName)
+		}
+		resp = append(resp, Response{LogicalID: r.LogicalID, MatchingAlias: r.WholeName, OtherAliases: aliasList, Relevance: r.Relevance})
+	}
+	return resp, nil
+}
+
 func scanDataToSanctionsList(reader io.Reader) ([]database.SanctionItem, error) {
 	scanner, err := csv.NewStructScanner(reader, csv.Comma(';'))
 
@@ -97,36 +142,24 @@ func scanDataToSanctionsList(reader io.Reader) ([]database.SanctionItem, error) 
 
 }
 
-func (c SanctionsClient) GetRelevantSanctionAndAliases(name string) ([]SanctionResponse, error) {
+/* Code to support mocking for unit tests */
 
-	sanctions, err := c.DBInfo.QuerySanctionsName(name)
-	if err != nil {
-		return nil, err
-	}
+// MockSanctionsBackend is a mock.
+type MockSanctionsBackend struct {
+}
 
-	results := []database.SanctionMatchResponse{}
-	for _, item := range sanctions {
-		if item.Relevance < 1 && len(results) == 0 {
-			results = append(results, item)
-			break
-		} else if item.Relevance < 1 {
-			break
-		} else {
-			results = append(results, item)
-		}
-	}
+// GetSanctionsList is a mock function.
+func (m MockSanctionsBackend) GetSanctionsList() ([]database.SanctionItem, error) {
+	return []database.SanctionItem{}, nil
+}
 
-	resp := []SanctionResponse{}
-	for _, r := range results {
-		aliasList := []string{}
-		aliases, err := c.DBInfo.GetAliasesForLogicalID(r.WholeName, r.LogicalID)
-		if err != nil {
-			return nil, err
-		}
-		for _, s := range aliases {
-			aliasList = append(aliasList, s.WholeName)
-		}
-		resp = append(resp, SanctionResponse{LogicalID: r.LogicalID, MatchingAlias: r.WholeName, OtherAliases: aliasList, Relevance: r.Relevance})
+// NewMockSanctionsClient returns a mock client.
+func NewMockSanctionsClient() SanctionsDB {
+	queryNameFunc := func() ([]database.SanctionMatchResponse, error) {
+		return []database.SanctionMatchResponse{}, nil
 	}
-	return resp, nil
+	getAliasesFunc := func() ([]database.SanctionItem, error) {
+		return []database.SanctionItem{}, nil
+	}
+	return SanctionsClient{DBInfo: database.MockDBInfo{QueryName: queryNameFunc, GetAliases: getAliasesFunc}, SanctionsURL: MockSanctionsBackend{}}
 }

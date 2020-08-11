@@ -50,9 +50,9 @@ func TestGetRelevantSanctionsAndAliasesFindsOtherAliases(t *testing.T) {
 
 	getAliasesResp := func() ([]database.SanctionItem, error) {
 		return []database.SanctionItem{
-			{LogicalID: 32, WholeName: "a"},
-			{LogicalID: 32, WholeName: "c"},
-			{LogicalID: 32, WholeName: "d"}}, nil
+			{LogicalID: "32", WholeName: "a"},
+			{LogicalID: "32", WholeName: "c"},
+			{LogicalID: "32", WholeName: "d"}}, nil
 	}
 
 	mockDB := database.MockDBInfo{QueryName: queryNameResp, GetAliases: getAliasesResp}

@@ -35,11 +35,11 @@ func main() {
 
 	}()
 	// start up the server
-	log.Printf("config details: dbName: %s, user: %s", config.Database.DBName, config.Database.User)
 	r := mux.NewRouter()
 	r.HandleFunc("/status", statusHandlerFactory(availableCh)).Methods(http.MethodGet)
 	r.HandleFunc("/search", searchHandlerFactory(sClient)).Methods(http.MethodGet)
-	log.Printf("starting server on 0.0.0.0:%s", config.FrontEnd.Port)
+	log.Printf("Starting server on 0.0.0.0:%s with parameters: dbName: %s, user: %s, sanctions URL: %s",
+		config.FrontEnd.Port, config.Database.DBName, config.Database.User, config.SanctionsBackend.URL)
 	var handler http.Handler = r
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+config.FrontEnd.Port, handler))
 

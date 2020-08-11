@@ -18,7 +18,7 @@ type DBOperations interface {
 
 // SanctionItem represents items from the sanctions source.
 type SanctionItem struct {
-	LogicalID int    `csv:"Entity_LogicalId"`
+	LogicalID string `csv:"Entity_LogicalId"`
 	WholeName string `csv:"NameAlias_WholeName"`
 }
 
@@ -170,7 +170,6 @@ func (d DBInfo) getInstance() (*sql.DB, error) {
 		psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 			d.host, d.port, d.user, d.dbName, d.password)
 
-		log.Printf("psqlInfo is: %s", psqlInfo)
 		db, err := sql.Open("postgres", psqlInfo)
 		if err != nil {
 			return nil, err
